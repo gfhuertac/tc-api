@@ -2,6 +2,22 @@
 
 # kill the currently running Node.JS process
 
+safeRunCommand() {
+  typeset cmnd="$*"
+  typeset ret_code
+
+  echo cmnd=$cmnd
+  eval $cmnd
+  exitcode=$?
+}
+
+command="npm test"
+safeRunCommand "$command"
+
+echo "exit code ${exitcode}"
+
+sleep 3
+
 # find the processes
 
 echo searching for processes....

@@ -108,7 +108,7 @@ describe("Informix JDBC Library", function () {
 
     after(function () {
         try {
-            java.callStaticMethod('java.lang.System', 'exit', 0, function () {});
+            //java.callStaticMethod('java.lang.System', 'exit', 0, function () {});
         } catch (e) {
             log('Error : ' + e, 'info');
         }

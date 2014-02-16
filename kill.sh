@@ -2,6 +2,12 @@
 
 # kill the currently running Node.JS process
 
+exitcode=$?
+
+echo "exit code ${exitcode}"
+
+sleep 3
+
 # find the processes
 
 echo searching for processes....
@@ -17,3 +23,5 @@ echo searching for processes....
     else
       echo "Node process was not found."
     fi
+
+exit ${exitcode}

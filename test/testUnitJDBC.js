@@ -16,10 +16,17 @@ var jdbc = require('informix-wrapper');
 var assert = require('assert');
 var clone = require('underscore').clone;
 
+var sys = require('sys')
+var exec = require('child_process').exec;
+
 var startDate = new Date();
 
 var log = function (msg, type) {
     console.log(msg + ' (time elapsed = ' + (new Date().getTime() - startDate.getTime()) + 'ms)');
+};
+
+var puts = function (error, stdout, stderr) { 
+    sys.puts(stdout) 
 };
 
 // Use this to point to the correct server.
@@ -109,6 +116,8 @@ describe("Informix JDBC Library", function () {
     after(function () {
         try {
             //java.callStaticMethod('java.lang.System', 'exit', 0, function () {});
+          var command = "kill $(ps aux | grep java | grep -v 'grep' | grep -v 'jasperreports' | awk '{print $2}')";
+          exec(command, puts);
         } catch (e) {
             log('Error : ' + e, 'info');
         }

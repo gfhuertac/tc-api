@@ -1028,8 +1028,8 @@ describe('Test Challenges API', function () {
                                 delete res.body.registrationEndDate;
                                 delete res.body.checkpointSubmissionEndDate;
                                 delete res.body.appealsEndDate;
-                                delete res.body.finalFixEndDate;
                                 delete res.body.submissionEndDate;
+                                delete res.body.finalFixEndDate;
                                 delete res.body.currentPhaseEndDate;
                                 delete res.body.currentPhaseRemainingTime;
                                 delete res.body.registrants[0].registrationDate;
@@ -1152,6 +1152,7 @@ describe('Test Challenges API', function () {
                     .expect(200)
                     .end(function (err, res) {
                         var body = res.body;
+                        assert.isUndefined(res.body.finalFixEndDate, 'studio challenge should not contain final fix end date');
                         assert.lengthOf(body.submissions, 1, "invalid submissions count");
                         assert.lengthOf(body.checkpoints, 1, "invalid checkpoints count");
                         assert.lengthOf(body.winners, 1, "invalid winners count");

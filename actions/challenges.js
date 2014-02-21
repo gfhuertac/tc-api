@@ -274,7 +274,6 @@ function transferResult(src, helper) {
             checkpointSubmissionEndDate : formatDate(row.checkpoint_submission_end_date),
             submissionEndDate : formatDate(row.submission_end_date),
             appealsEndDate : formatDate(row.appeals_end_date),
-            finalFixEndDate : formatDate(row.final_fix_end_date),
             currentPhaseEndDate : formatDate(row.current_phase_end_date),
             currentPhaseRemainingTime : row.current_phase_remaining_time,
             currentStatus : row.current_status,
@@ -293,12 +292,8 @@ function transferResult(src, helper) {
             }
         }
 
-        if (row.is_studio) {
-            delete challenge.finalFixEndDate;
-        } else {
-            if (row.project_type == 9) { //challenge.challengeType === 'bug_hunt') {
-                delete challenge.finalFixEndDate;
-            }
+        if (row.final_fix_end_date) {
+            challenge.finalFixEndDate = formatDate(row.final_fix_end_date);
         }
 
         ret.push(challenge);
@@ -653,7 +648,6 @@ var getChallenge = function (api, connection, dbConnectionMap, isStudio, next) {
                 checkpointSubmissionEndDate : formatDate(data.checkpoint_submission_end_date),
                 submissionEndDate : formatDate(data.submission_end_date),
                 appealsEndDate : formatDate(data.appeals_end_date),
-                finalFixEndDate : formatDate(data.final_fix_end_date),
                 submissionLimit : data.submission_limit,
                 currentPhaseEndDate : formatDate(data.current_phase_end_date),
                 currentStatus : data.current_status,
@@ -674,20 +668,20 @@ var getChallenge = function (api, connection, dbConnectionMap, isStudio, next) {
                 Documents: mapDocuments(results.documents)
             };
 
+            if (data.final_fix_end_date) {
+                challenge.finalFixEndDate = formatDate(data.final_fix_end_date);
+            }
+
             if (isStudio) {
                 delete challenge.finalSubmissionGuidelines;
                 delete challenge.reliabilityBonus;
                 delete challenge.technology;
                 delete challenge.platforms;
-                delete challenge.finalFixEndDate;
             } else {
                 challenge.numberOfSubmissions = results.submissions.length;
 
                 if (data.is_reliability_bonus_eligible !== 'true') {
                     delete challenge.reliabilityBonus;
-                }
-                if (data.details.project_type == 9) { //data.challengeType === 'bug_hunt') {
-                    delete challenge.finalFixEndDate;
                 }
                 delete challenge.checkpoints;
                 delete challenge.winners;

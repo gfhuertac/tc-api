@@ -11,8 +11,15 @@ safeRunCommand() {
   exitcode=$?
 }
 
-command="npm test"
-safeRunCommand "$command"
+source ./deploy/development.sh
+
+safeRunCommand "npm install"
+
+safeRunCommand "npm start"
+
+sleep 5
+
+safeRunCommand "npm test"
 
 echo "exit code ${exitcode}"
 

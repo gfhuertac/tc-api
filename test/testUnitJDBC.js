@@ -113,15 +113,17 @@ function executeQuery(db, sql, done, params) {
 describe("Informix JDBC Library", function () {
     this.timeout(0);  // No timeout restriction
 
+/*
     after(function () {
         try {
-            //java.callStaticMethod('java.lang.System', 'exit', 0, function () {});
-          var command = "kill $(ps aux | grep java | grep -v 'grep' | grep -v 'jasperreports' | awk '{print $2}')";
-          exec(command, puts);
+          java.callStaticMethod('java.lang.System', 'exit', 0, function () {});
+          //var command = "kill $(ps aux | grep java | grep -v 'grep' | grep -v 'jasperreports' | awk '{print $2}')";
+          //exec(command, puts);
         } catch (e) {
             log('Error : ' + e, 'info');
         }
     });
+*/
 
     describe("Multiple Async Queries", function () {
         beforeEach(function (done) {

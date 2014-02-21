@@ -36,7 +36,7 @@ SELECT
            AND proj.project_id = p.project_id
            AND ppd.phase_type_id = 1) AS posting_date
      , NVL(pp1.scheduled_end_time, pp2.scheduled_end_time) AS registration_end_date
-     , pp15.scheduled_end_time AS checkpoint_submission_end_date
+     , NVL(pp15.scheduled_end_time , pp15.actual_end_time) AS checkpoint_submission_end_date
      , pp2.scheduled_end_time AS submission_end_date
      , NVL(pp6.scheduled_end_time, pp4.scheduled_end_time) AS appeals_end_date
      , NVL(pp9.scheduled_end_time, pp4.scheduled_end_time) final_fix_end_date

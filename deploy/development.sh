@@ -10,7 +10,7 @@
 #
 
 #Modify this ip address to use your own informix  database in VM
-TC_VM_IP=54.80.96.216
+TC_VM_IP=54.80.112.117
 
 # tests rely on caching being off. But set this to a real value (or remove) while coding.
 export CACHE_EXPIRY=-1

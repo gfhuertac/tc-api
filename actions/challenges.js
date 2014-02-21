@@ -292,6 +292,15 @@ function transferResult(src, helper) {
                 challenge.prize.push(prize);
             }
         }
+
+        if (row.is_studio) {
+            delete challenge.finalFixEndDate;
+        } else {
+            if (row.project_type == 9) { //challenge.challengeType === 'bug_hunt') {
+                delete challenge.finalFixEndDate;
+            }
+        }
+
         ret.push(challenge);
     });
     return ret;
@@ -670,11 +679,15 @@ var getChallenge = function (api, connection, dbConnectionMap, isStudio, next) {
                 delete challenge.reliabilityBonus;
                 delete challenge.technology;
                 delete challenge.platforms;
+                delete challenge.finalFixEndDate;
             } else {
                 challenge.numberOfSubmissions = results.submissions.length;
 
                 if (data.is_reliability_bonus_eligible !== 'true') {
                     delete challenge.reliabilityBonus;
+                }
+                if (data.details.project_type == 9) { //data.challengeType === 'bug_hunt') {
+                    delete challenge.finalFixEndDate;
                 }
                 delete challenge.checkpoints;
                 delete challenge.winners;

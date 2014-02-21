@@ -1,0 +1,7 @@
+image: docker pull bradrydzewski/node:0.10
+env:
+  - DISABLE_CONSOLE_LOG=true
+script:
+  - . ./deploy/development.sh
+  - npm install
+  - . ./testAndKill.sh

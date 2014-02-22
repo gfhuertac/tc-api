@@ -32,7 +32,7 @@ FIRST @pageSize@
      , NVL(pp15.actual_end_time , pp15.scheduled_end_time) AS checkpoint_submission_end_date
      , NVL(pp2.actual_end_time, pp2.scheduled_end_time) AS submission_end_date
      , NVL(pp6.scheduled_end_time, pp4.scheduled_end_time) AS appeals_end_date
-     , pp9.scheduled_end_time AS final_fix_end_date
+     , NVL(pp9.actual_end_time, pp9.scheduled_end_time) AS final_fix_end_date
      , nd_phase.scheduled_end_time AS current_phase_end_date
      , (( nd_phase.scheduled_end_time - CURRENT)::interval second(9) to second)::char(10)::int8 AS current_phase_remaining_time
      , pstatus.name AS current_status

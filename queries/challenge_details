@@ -40,7 +40,7 @@ SELECT
      , NVL(pp2.actual_end_time, pp2.scheduled_end_time)  AS submission_end_date
      , NVL(NVL(pp6.actual_end_time, pp6.scheduled_end_time), NVL(pp4.actual_end_time, pp4.scheduled_end_time)) AS appeals_end_date
      , NVL(pp9.actual_end_time, pp9.scheduled_end_time) AS final_fix_end_date
-     , nd_phase.scheduled_end_time AS current_phase_end_date
+     , NVL(nd_phase.actual_end_time, nd_phase.scheduled_end_time) AS current_phase_end_date
      , pstatus.name AS current_status
      , CASE WHEN (nd_phase.scheduled_end_time IS NOT NULL) THEN
                 (SELECT phase_type_lu.description FROM phase_type_lu

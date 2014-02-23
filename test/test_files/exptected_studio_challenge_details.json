@@ -27,11 +27,23 @@
         500,
         200
     ],
-    "numberOfRegistrants": 1,
+    "numberOfRegistrants": 4,
     "registrants": [
         {
             "handle": "heffan",
             "reliability": "100%"
+        },
+        {
+            "handle": "user",
+            "reliability": "n/a"
+        },
+        {
+            "handle": "twight",
+            "reliability": "n/a"
+        },
+        {
+            "handle": "sandking",
+            "reliability": "n/a"
         }
     ],
     "checkpoints": [

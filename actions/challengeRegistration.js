@@ -3,8 +3,11 @@
  *
  * The APIs to register a challenge (studio category or software category) for the current logged-in user.
  *
- * @version 1.0
- * @author ecnu_haozi
+ * @version 1.1
+ * @author ecnu_haozi, xjtufreeman
+ *
+ * changes in 1.1:
+ * Combine Challenge Registration API(BUGR-11058)
  */
 "use strict";
 
@@ -121,7 +124,13 @@ var persistResource = function (api, resourceId, userId, challengeId, dbConnecti
         modifyUser: '"' + userId + '"'
     },
         dbConnectionMap,
-        next);
+        function (err, result) {
+            if (err) {
+                next(err);
+            } else {
+                next(null, resourceId);
+            }
+        });
 };
 
 /**
@@ -239,11 +248,10 @@ var projectTrack = function (api, userId, challengeId, componentInfo, dbConnecti
             });
         },
         function (resourceId, callback) {
+            persistResource(api, resourceId, userId, challengeId, dbConnectionMap, callback);
+        },
+        function (resourceId, callback) {
             async.parallel([
-
-                function (cb) {
-                    persistResource(api, resourceId, userId, challengeId, dbConnectionMap, cb);
-                },
                 function (cb) {
                     aduitResourceAddition(api, userId, challengeId, dbConnectionMap, cb);
                 },
@@ -310,7 +318,7 @@ var projectTrack = function (api, userId, challengeId, componentInfo, dbConnecti
                             if (result.length === 0) {
                                 reliability = 0;
                             } else {
-                                reliability = result[0].rating;    
+                                reliability = result[0].rating;
                             }
                             if (!_.isNull(reliability) && !_.isUndefined(reliability)) {
                                 persistResourceInfo(api, resourceId, 5, reliability, userId, dbConnectionMap, cbk);
@@ -367,7 +375,7 @@ var sendNotificationEmail = function (api, componentInfo, userId, dbConnectionMa
                 documentationDetails = '(See "Development Phase Documents" thread)';
             }
 
-            if(componentInfo.phase_id === 112 || componentInfo.phase_id === 113){
+            if (componentInfo.phase_id === 112 || componentInfo.phase_id === 113) {
                 umlToolInfo = "You can read more about our UML tool and download it at\n" +
                         "http://www.topcoder.com/tc?module=Static&d1=dev&d2=umltool&d3=description\n\n";
             }
@@ -445,12 +453,12 @@ var persistStudioChallengeResouce = function (api, userId, challengeId, dbConnec
                 callback(err, resourceId);
             });
         },
+
+        function (resourceId, callback) {
+            persistResource(api, resourceId, userId, challengeId, dbConnectionMap, callback);
+        },
         function (resourceId, callback) {
             async.parallel([
-
-                function (cb) {
-                    persistResource(api, resourceId, userId, challengeId, dbConnectionMap, cb);
-                },
                 function (cb) {
                     //External Reference ID
                     persistResourceInfo(api, resourceId, 1, userId, userId, dbConnectionMap, cb);
@@ -545,71 +553,114 @@ var registerStudioChallenge = function (api, userId, challengeId, dbConnectionMa
     ], next);
 };
 
+
 /**
- * The API to register a development (software) challenge for the current logged-in user.
+ * The action to register a software challenge for the current logged-in user.
+ *
+ * @param {Object} api The api object that is used to access the infrastructure.
+ * @param {Object} connection The connection for the current request.
+ * @param {Function<err, data>} next The callback to be called after this function is done.
  */
-exports.registerSoftwareChallenge = {
-    name: "registerSoftwareChallenge",
-    description: "registerSoftwareChallenge",
-    inputs: {
-        required: ["challengeId"],
-        optional: []
-    },
-    blockedConnectionTypes: [],
-    outputExample: {},
-    version: 'v2',
-    transaction: 'write',
-    databases: ["tcs_catalog", "common_oltp"],
-    run: function (api, connection, next) {
-        if (connection.dbConnectionMap) {
-            api.log("Execute registerSoftwareChallenge#run", 'debug');
+var registerSoftwareChallengeAction = function (api, connection, next) {
+    if (connection.dbConnectionMap) {
+        api.log("Execute registerSoftwareChallengeAction#run", 'debug');
 
-            var challengeId = Number(connection.params.challengeId);
-            async.waterfall([
+        var challengeId = Number(connection.params.challengeId);
+        async.waterfall([
 
-                function (cb) {
-                    api.challengeHelper.getChallengeTerms(
-                        connection,
+            function (cb) {
+                api.challengeHelper.getChallengeTerms(
+                    connection,
+                    challengeId,
+                    "Submitter", //optional value. Here we don't need to provide such value.
+                    connection.dbConnectionMap,
+                    cb
+                );
+            },
+            function (terms, cb) {
+                if (allTermsAgreed(terms)) {
+                    registerSoftwareChallenge(
+                        api,
+                        connection.caller.userId,
                         challengeId,
-                        undefined, //optional value. Here we don't need to provide such value.
                         connection.dbConnectionMap,
                         cb
                     );
-                },
-                function (terms, cb) {
-                    if (allTermsAgreed(terms)) {
-                        registerSoftwareChallenge(
-                            api,
-                            connection.caller.userId,
-                            challengeId,
-                            connection.dbConnectionMap,
-                            cb
-                        );
-                        api.log("register the software challenge succeeded.", 'debug');
-                    } else {
-                        cb(new ForbiddenError('You should agree with all terms of use.'));
-                    }
-                }
-            ], function (err) {
-                if (err) {
-                    api.helper.handleError(api, connection, err);
+                    api.log("register the software challenge succeeded.", 'debug');
                 } else {
-                    connection.response = {message : "ok"};
+                    cb(new ForbiddenError('You should agree with all terms of use.'));
                 }
-                next(connection, true);
-            });
-        } else {
-            api.helper.handleNoConnection(api, connection, next);
-        }
+            }
+        ], function (err) {
+            if (err) {
+                api.helper.handleError(api, connection, err);
+            } else {
+                connection.response = {message : "ok"};
+            }
+            next(connection, true);
+        });
+    } else {
+        api.helper.handleNoConnection(api, connection, next);
     }
 };
 
 /**
- * The API to register a design challenge (studio) for the current logged-in user.
+ * The action to register a design challenge(studio) for the current logged-in user.
+ *
+ * @param {Object} api The api object that is used to access the infrastructure.
+ * @param {Object} connection The connection for the current request.
+ * @param {Function<err, data>} next The callback to be called after this function is done.
  */
-exports.registerStudioChallenge = {
-    name: "registerStudioChallenge",
-    description: "registerStudioChallenge",
+var registerStudioChallengeAction = function (api, connection, next) {
+    if (connection.dbConnectionMap) {
+        api.log("Execute registerStudioChallengeAction#run", 'debug');
+
+        var challengeId = Number(connection.params.challengeId);
+        async.waterfall([
+
+            function (cb) {
+                api.challengeHelper.getChallengeTerms(
+                    connection,
+                    challengeId,
+                    "Submitter",
+                    connection.dbConnectionMap,
+                    cb
+                );
+            },
+            function (terms, cb) {
+                if (allTermsAgreed(terms)) {
+                    registerStudioChallenge(
+                        api,
+                        connection.caller.userId,
+                        challengeId,
+                        connection.dbConnectionMap,
+                        cb
+                    );
+                    api.log("register the studio challenge succeeded.", 'debug');
+                } else {
+                    cb(new ForbiddenError('You should agree with all terms of use.'));
+                }
+            }
+        ], function (err) {
+            if (err) {
+                api.helper.handleError(api, connection, err);
+            } else {
+                connection.response = {message : "ok"};
+            }
+            next(connection, true);
+        });
+    } else {
+        api.helper.handleNoConnection(api, connection, next);
+    }
+};
+
+
+/**
+ * The API to register a challenge for the current logged-in user.
+ */
+exports.registerChallenge = {
+    name: "registerChallenge",
+    description: "registerChallenge",
     inputs: {
         required: ["challengeId"],
         optional: []
@@ -617,48 +668,43 @@ exports.registerStudioChallenge = {
     blockedConnectionTypes: [],
     outputExample: {},
     version: 'v2',
+    cacheEnabled : false,
     transaction: 'write',
     databases: ["tcs_catalog", "common_oltp"],
     run: function (api, connection, next) {
-        if (connection.dbConnectionMap) {
-            api.log("Execute registerStudioChallenge#run", 'debug');
 
-            var challengeId = Number(connection.params.challengeId);
-            async.waterfall([
-
-                function (cb) {
-                    api.challengeHelper.getChallengeTerms(
-                        connection,
-                        challengeId,
-                        undefined, //optional value. Here we don't need to provide such value.
-                        connection.dbConnectionMap,
-                        cb
-                    );
-                },
-                function (terms, cb) {
-                    if (allTermsAgreed(terms)) {
-                        registerStudioChallenge(
-                            api,
-                            connection.caller.userId,
-                            challengeId,
-                            connection.dbConnectionMap,
-                            cb
-                        );
-                        api.log("register the studio challenge succeeded.", 'debug');
-                    } else {
-                        cb(new ForbiddenError('You should agree with all terms of use.'));
-                    }
-                }
-            ], function (err) {
-                if (err) {
-                    api.helper.handleError(api, connection, err);
+        var challengeId = Number(connection.params.challengeId);
+        console.log("challengeId: " +  challengeId);
+        async.waterfall([
+            function (cb) {
+                //Simple validations of the incoming parameters
+                var error = api.helper.checkPositiveInteger(challengeId, 'challengeId') ||
+                    api.helper.checkMaxInt(challengeId, 'challengeId');
+                if (error) {
+                    console.log("error: " +  error);
+                    cb(error);
                 } else {
-                    connection.response = {message : "ok"};
+                    console.log("error11: " +  error);
+                    api.dataAccess.executeQuery('check_challenge_exists', {challengeId: challengeId}, connection.dbConnectionMap, cb)
                 }
+            }, function(result, cb) {
+                if(result.length > 0) {
+                    if(result[0].is_studio) {
+                        registerStudioChallengeAction(api, connection, next);
+                    } else {
+                        registerSoftwareChallengeAction(api, connection, next);
+                    }
+                } else {
+                    cb();
+                }
+            }
+        ], function(err){
+            if (err) {
+                api.helper.handleError(api, connection, err);
                 next(connection, true);
-            });
-        } else {
-            api.helper.handleNoConnection(api, connection, next);
-        }
+            } else {
+                next(connection, false); //false = response has been set
+            }
+        });
     }
 };

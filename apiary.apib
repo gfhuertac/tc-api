@@ -338,19 +338,19 @@ Register a new user.
 ### Create a new user via social login [POST]
 + Request (application/json)
 
-    {
-        "firstname" : "John",
-        "lastname" : "Doe",
-        "handle" : "uniqueLogin",
-        "country" : "UK",
-        "email" : "name@domain.com",
-        "socialProvider" : "google",
-        "socialUserId": "3003300",
-        "socialUserName" : "JohnsGoogleName",
-        "socialEmail" : "john@gmail.com",
-        "socialEmailVerified" : "true",
-        "regSource": "TC API"
-    }
+        {
+            "firstname" : "John",
+            "lastname" : "Doe",
+            "handle" : "uniqueLogin",
+            "country" : "UK",
+            "email" : "name@domain.com",
+            "socialProvider" : "google",
+            "socialUserId": "3003300",
+            "socialUserName" : "JohnsGoogleName",
+            "socialEmail" : "john@gmail.com",
+            "socialEmailVerified" : "true",
+            "regSource": "TC API"
+        }
 
 + Response 200 (application/json)
 
@@ -695,6 +695,42 @@ Register a new user.
             "name":"Not Found",
             "value":"404",
             "description":"This message will explain why the URI requested is invalid or the resource does not exist."
+        }
+
++ Response 500 (application/json)
+
+        {
+            "name":"Internal Server Error",
+            "value":"500",
+            "description":"Unknown server error. Please contact support."
+        }
+
++ Response 503 (application/json)
+
+        {
+            "name":"Service Unavailable",
+            "value":"503",
+            "description":"Servers are up but overloaded. Try again later."
+        }
+
+## Validate Handle [/users/validate/{handle}]
+### Validate Handle [GET]
+
++ Parameters
+    + handle (required, string, `iRabbit`) ... Member Handle
+
++ Response 200 (application/json)
+
+        {
+            "valid":true
+        }
+
++ Response 400 (application/json)
+
+        {
+            "name":"Bad Request",
+            "value":"400",
+            "description":"The handle you entered is not valid"
         }
 
 + Response 500 (application/json)
@@ -1225,18 +1261,18 @@ Register a new user.
         }
 
         
-## Search Software Challenges [/develop/challenges?listType={listType}&pageIndex={pageIndex}&pageSize={pageSize}&sortColumn={sortColumn}&sortOrder={sortOrder}&communityId={communityId}]
+## Search Software Challenges [/develop/challenges?listType={listType}&pageIndex={pageIndex}&pageSize={pageSize}&sortColumn={sortColumn}&sortOrder={sortOrder}&communityId={communityId}&submissionEndFrom={submissionEndFrom}&submissionEndTo={submissionEndTo}]
 ### Search Software Challenges [GET]
 
 + Parameters
     + listType (optional, string, `Open`) ... The type of challenges to search. It can only be 'ACTIVE', 'OPEN', 'PAST' or 'UPCOMING'. If it's null, 'Open' will be should used.
-    + filter (optional, string, `challengeType`) ... Key of the filter key-value pair
-    + value (optional, string, `Development`) ... Value of the filter key-value pair
     + pageIndex (optional, number, `1`) ... The paging number, 1-based, -1 if no paging. It can be null.
     + pageSize (optional, number, `50`) ... The max number of the results, should be set if pageIndex is set.
     + sortColumn (optional, string, `challengeName`) ... The column name to sort, can be null.
     + sortOrder (optional, string, `asc`) ... The sorting order, can be null. If it's set, it can only be 'asc' or 'desc'.
     + communityId (optional, number, `1`) ... The community id.
+    + submissionEndFrom (optional, string, `2014-03-01`) ... submission end date from value.
+    + submissionEndTo (optional, string, `2014-03-15`) ... submission end date to value.
 
 + Response 200 (application/json)
 
@@ -1251,6 +1287,10 @@ Register a new user.
                     "challengeId": 30036096,
                     "projectId": 6789,
                     "forumId": 1001,
+                    "eventId": 1,
+                    "eventName": "TCO14",
+                    "platforms": [ "Heroku", "NodeJS"],
+                    "technologies": [ "JavaScript", "Node.js" ],
                     "numSubmissions": 16,
                     "numRegistrants": 27,
                     "screeningScorecardId": 1001,
@@ -1279,6 +1319,10 @@ Register a new user.
                     "challengeId": 30036099,
                     "projectId": 6484,
                     "forumId": 1001,
+                    "eventId": 1,
+                    "eventName": "TCO14",
+                    "platforms": [ "Heroku", "NodeJS"],
+                    "technologies": [ "JavaScript", "Node.js" ],
                     "numSubmissions": 16,
                     "numRegistrants": 27,
                     "screeningScorecardId": 1001,
@@ -1307,6 +1351,10 @@ Register a new user.
                     "challengeId": 30036091,
                     "projectId": 6778,
                     "forumId": 1001,
+                    "eventId": 1,
+                    "eventName": "TCO14",
+                    "platforms": [ "Heroku", "NodeJS"],
+                    "technologies": [ "JavaScript", "Node.js" ],
                     "numSubmissions": 16,
                     "numRegistrants": 27,
                     "screeningScorecardId": 1001,
@@ -2109,7 +2157,7 @@ Register a new user.
 
 # Group Studio Challenges
 
-## Search Studio Challenges [/design/challenges?listType={listType}&pageSize={pageSize}&pageIndex={pageIndex}&sortColumn={sortColumn}&sortOrder={sortOrder}&communityId={communityId}]
+## Search Studio Challenges [/design/challenges?listType={listType}&pageSize={pageSize}&pageIndex={pageIndex}&sortColumn={sortColumn}&sortOrder={sortOrder}&communityId={communityId}&submissionEndFrom={submissionEndFrom}&submissionEndTo={submissionEndTo}]
 ### Search Studio Challenges [GET]
 
 + Parameters
@@ -2121,6 +2169,8 @@ Register a new user.
     + sortColumn (optional, string, `challengeName`) ... The column name to sort, can be null.
     + sortOrder (optional, string, `asc`) ... The sorting order, can be null. If it's set, it can only be 'asc' or 'desc'.
     + communityId (optional, number, `1`) ... The community id.
+    + submissionEndFrom (optional, string, `2014-03-01`) ... submission end date from value.
+    + submissionEndTo (optional, string, `2014-03-15`) ... submission end date to value.
     
 + Response 200 (application/json)
         
@@ -2136,6 +2186,8 @@ Register a new user.
                     "challengeId": 30036096,
                     "projectId": 6789,
                     "forumId": 1001,
+                    "eventId": 1,
+                    "eventName": "TCO14",
                     "numSubmissions": 16,
                     "numRegistrants": 27,
                     "screeningScorecardId": 1001,
@@ -2164,6 +2216,8 @@ Register a new user.
                     "challengeId": 30036096,
                     "projectId": 6789,
                     "forumId": 1001,
+                    "eventId": 1,
+                    "eventName": "TCO14",
                     "numSubmissions": 16,
                     "numRegistrants": 27,
                     "screeningScorecardId": 1001,
@@ -2992,7 +3046,27 @@ Register a new user.
             "description":"Servers are up but overloaded. Try again later."
         }
         
-# Group Algorithms Challenges
+# Group Data
+
+## Platforms [/data/platforms]
+### Platforms [GET]
+
++ Response 200 (application/json)
+
+        {
+            "count": 2,
+            "platforms": [ "Heroku", "NodeJs" ]
+        }
+        
+## Technologies [/data/technologies]
+### Technologies [GET]
+
++ Response 200 (application/json)
+
+        {
+            "count": 2,
+            "technologies": [ "JavaScript", "NodeJS" ]
+        }
 
 ## Challenge Types Collection [/data/challengetypes]
 ### List all challenge types [GET]
@@ -4374,68 +4448,8 @@ Register a new user.
             "description":"Servers are up but overloaded. Try again later."
         }
 
-## Register for a software challenge [/develop/challenges/{challengeId}/register]
-### Register for a software challenge [GET]
-
-+ Parameters
-    + challengeId (required, number, `1234567`) ... The challenge for which to register.
-
-+ Response 200 (application/json)
-
-    {
-      "message":"ok" 
-    }
-
-+ Response 400 (application/json)
-
-        {
-            "name":"Bad Request",
-            "value":"400",
-            "description":"This message will explain why the request is invalid or cannot be served."
-        }
-
-+ Response 401 (application/json)
-
-        {
-            "name":"Unauthorized",
-            "value":"401",
-            "description":"Authentication credentials were missing or incorrect."
-        }
-
-+ Response 403 (application/json)
-
-        {
-            "name":"Forbidden",
-            "value":"403",
-            "description":"The request is understood, but it has been refused or access is not allowed."
-        }
-
-+ Response 404 (application/json)
-
-        {
-            "name":"Not Found",
-            "value":"404",
-            "description":"This message will explain why the URI requested is invalid or the resource does not exist."
-        }
-
-+ Response 500 (application/json)
-
-        {
-            "name":"Internal Server Error",
-            "value":"500",
-            "description":"Unknown server error. Please contact support."
-        }
-
-+ Response 503 (application/json)
-
-        {
-            "name":"Service Unavailable",
-            "value":"503",
-            "description":"Servers are up but overloaded. Try again later."
-        }
-
-## Register for a studio challenge [/design/challenges/{challengeId}/register]
-### Register for a studio challenge [GET]
+## Register for a software/studio challenge [/challenges/{challengeId}/register]
+### Register for a software/studio challenge [GET]
 
 + Parameters
     + challengeId (required, number, `1234567`) ... The challenge for which to register

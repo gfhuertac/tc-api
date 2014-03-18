@@ -1,7 +1,11 @@
 SELECT
   s.submission_id AS id
+, NVL(s.screening_score, 0.0) as screening_score
+, s.submission_status_id
 , ric.content AS feedback
+,(select riu.value from resource_info riu where  riu.resource_id = u.resource_id and riu.resource_info_type_id = 2) AS handle
 FROM submission s
+INNER JOIN upload u ON s.upload_id = u.upload_id
 INNER JOIN review r ON r.submission_id = s.submission_id
 INNER JOIN review_item ri ON ri.review_id = r.review_id
 INNER JOIN review_item_comment ric ON ric.review_item_id = ri.review_item_id

@@ -21,5 +21,9 @@
             "submissionId": 2010
         }
     ],
+    "numberOfSubmissions": 5,
+    "numberOfPassedScreeningSubmissions": 5,
+    "numberOfUniqueSubmitters": 1,
+    "numberOfPassedScreeningUniqueSubmissions": 1,
     "generalFeedback": "general feedback for challenge 2002"
 }

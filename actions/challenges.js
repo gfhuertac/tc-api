@@ -1191,12 +1191,25 @@ var getCheckpoint = function (api, connection, dbConnectionMap, isStudio, next) 
                 cb(new NotFoundError("Checkpoint data not found."));
                 return;
             }
-            result.checkpointResults = _.map(res.detail, function (ele) {
-                return {
-                    submissionId: ele.id,
-                    feedback: ele.feedback
+            var submitters = {};
+            var total = 0;
+            result.checkpointResults = [];
+            _.each(res.detail, function (ele) {
+                var passed = (ele.submission_status_id != 2);
+                submitters[ ele.handle ] = submitters[ ele.handle ] || passed;
+                total += (passed) ? 1 : 0;
+                var map = {
+                    feedback: ele.feedback,
+                    submissionId: ele.id
                 };
+                result.checkpointResults.push(map);
             });
+            if (isStudio) {
+              result.numberOfSubmissions = res.detail.length;
+              result.numberOfPassedScreeningSubmissions = total;
+              result.numberOfUniqueSubmitters = _.size(submitters);
+              result.numberOfPassedScreeningUniqueSubmissions = _.reduce(_.values(submitters), function(memo, s){ return memo + (s?1:0); }, 0);
+            }
             result.generalFeedback = generalFeedback;
             cb();
         }

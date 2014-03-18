@@ -5,9 +5,9 @@
 
 /**
  * This module contains helper functions.
- * @author Sky_, TCSASSEMBLER, Ghost_141, muzehyun, kurtrips
- * @version 1.12
- * changes in 1.1:
+ * @author Sky_, Ghost_141, muzehyun, kurtrips, isv
+ * @version 1.13
+ * changes in 1.15
  * - add mapProperties
  * changes in 1.2:
  * - add getPercent to underscore mixin
@@ -41,6 +41,13 @@
  * - update method getSortColumnDBName to lowercase the column name when search it.
  * - update checkFilterDate to use checkDateFormat to check date value.
  * - add method formatDate.
+ * changes in 1.13
+ * - add method checkTrackName, getPhaseId.
+ * - add phaseName2Id map.
+ * Changes in 1.14:
+ * - add method checkMember to check if the caller have at least member access leve.
+ * changes in 1.15
+ * - added checkUserExists function
  */
 "use strict";
 
@@ -167,7 +174,7 @@ helper.softwareChallengeTypes = {
         phaseId: 124
     },
     assembly: {
-        name: "Assembly",
+        name: "Assembly Competition",
         phaseId: 125
     },
     ui_prototypes: {
@@ -271,8 +278,19 @@ helper.studioChallengeTypes = {
  */
 helper.MAX_INT = 2147483647;
 
+/**
+ * The phase id to name map.
+ */
 var phaseId2Name = _.object(_.values(_.extend(helper.studioChallengeTypes, helper.softwareChallengeTypes)).map(function (item) {
     return [item.phaseId, item.name];
+}));
+
+/**
+ * The phase name to id map.
+ * @since 1.13
+ */
+var phaseName2Id = _.object(_.values(_.extend(helper.studioChallengeTypes, helper.softwareChallengeTypes)).map(function (item) {
+    return [item.name.toLowerCase(), item.phaseId];
 }));
 
 /**
@@ -885,12 +903,22 @@ helper.getCachedValue = function (key, callback) {
     });
 };
 
-/*
+/**
  * Get the phase name based on phase Id
  * @param {Number} phaseId - the phase id.
  */
 helper.getPhaseName = function (phaseId) {
     return phaseId2Name[phaseId];
+};
+
+/**
+ * Get the phase name by given phase id.
+ * @param {String} phaseName - the phase name.
+ * @returns {Number} - the phase id.
+ * @since 1.13
+ */
+helper.getPhaseId = function (phaseName) {
+    return phaseName2Id[phaseName.toLowerCase()];
 };
 
 
@@ -899,19 +927,24 @@ helper.getPhaseName = function (phaseId) {
  * @param {Number} rating - the rating.
  */
 helper.getColorStyle = function (rating) {
+
+	if (rating === null) {
+		 return "color: #000000";
+	}
+
     if (rating < 0) {
         return "color: #FF9900"; // orange
     }
-    if (rating > 0 && rating < 900) {
+    if (rating < 900) {
         return "color: #999999";// gray
     }
-    if (rating > 899 && rating < 1200) {
+    if (rating < 1200) {
         return "color: #00A900";// green
     }
-    if (rating > 1199 && rating < 1500) {
+    if (rating < 1500) {
         return "color: #6666FF";// blue
     }
-    if (rating > 1499 && rating < 2200) {
+    if (rating < 2200) {
         return "color: #DDCC00";// yellow
     }
     if (rating > 2199) {
@@ -919,6 +952,7 @@ helper.getColorStyle = function (rating) {
     }
     // return black otherwise.
     return "color: #000000";
+
 };
 
 
@@ -963,6 +997,24 @@ helper.checkAdmin = function (connection) {
         return null;
     }
     return new ForbiddenError();
+};
+
+/**
+ * Check if the caller has at least member access level.
+ * @param {Object} connection - the connection object.
+ * @param {String} unauthorizedErrorMessage - the error message for unauthorized error.
+ * @returns {Error} if the caller don't have at least member access level. An error will be returned.
+ * @since 1.13
+ */
+helper.checkMember = function (connection, unauthorizedErrorMessage) {
+    var caller = connection.caller;
+    if (!_.isDefined(caller) || caller.accessLevel === 'anon') {
+        return new UnauthorizedError(unauthorizedErrorMessage);
+    }
+    if (helper.isMember(caller)) {
+        return null;
+    }
+    return new IllegalArgumentError('Wrong auth object');
 };
 
 /**
@@ -1030,6 +1082,56 @@ helper.formatDate = function (date, format) {
     }
     return '';
 };
+
+/**
+ * Check if the track name is a valid one.
+ * @param {String} track - the track name.
+ * @param {Boolean} isStudio - represent the track is a studio track name or not.
+ * @returns {Error} - if the track name is invalid.
+ * @since 1.13
+ */
+helper.checkTrackName = function (track, isStudio) {
+    var validTrack = isStudio ? helper.studioChallengeTypes : helper.softwareChallengeTypes,
+        validTrackName = _.map(_.values(validTrack), function (item) { return item.name.toLowerCase(); });
+    return helper.checkContains(validTrackName, track, 'track');
+};
+
+/**
+ * Checks whether given user is registered or not. If user not exist then NotFoundError is returned to callback.
+ *
+ * @param {String} handle - the handle to check
+ * @param {Object} api - the action hero api object
+ * @param {Object} dbConnectionMap - the database connection map
+ * @param {Function<err>} callback - the callback function
+ */
+helper.checkUserExists = function (handle, api, dbConnectionMap, callback) {
+    // Check cache first
+    var cacheKey = handle;
+    api.helper.getCachedValue(cacheKey, function (err, exists) {
+        if (!exists) {
+            // If there is no hit in cache then query DB to check user account for existence and cache positive result 
+            // only
+            api.log("No hit in users cache for [" + handle + "]. Will query database.", "debug");
+            api.dataAccess.executeQuery("check_coder_exist", { handle: handle }, dbConnectionMap, function (err, result) {
+                if (err) {
+                    callback(err);
+                    return;
+                }
+                if (result && result[0] && result[0].handle_exist !== 0) {
+                    var lifetime = api.config.general.defaultUserCacheLifetime;
+                    api.cache.save(cacheKey, true, lifetime); // storing primitive boolean "true" value as cache value
+                    callback(err, null);
+                } else {
+                    callback(err, new NotFoundError("User does not exist."));
+                }
+            });
+        } else {
+            api.log("There is a hit in users cache for [" + handle + "].", "debug");
+            callback(err, null);
+        }
+    });
+};
+
 
 /**
 * Expose the "helper" utility.

@@ -1,8 +1,8 @@
 /*
  * Copyright (C) 2013 - 2014 TopCoder Inc., All Rights Reserved.
  *
- * @author vangavroche, Ghost_141, kurtrips, Sky_
- * @version 1.11
+ * @author vangavroche, Ghost_141, kurtrips, Sky_, isv
+ * @version 1.12
  * changes in 1.1:
  * - add defaultCacheLifetime parameter
  * changes in 1.2:
@@ -20,12 +20,15 @@
  * - add downloadsRootDirectory parameter
  * changes in 1.8:
  * - add time_oltp and corporate_oltp in databaseMapping.
+ * - added uploadsRootDirectory, thurgoodDownloadUsername and thurgoodDownloadPassword parameters
  * changes in 1.9:
  * - add parameters for submission output directory, submission max size and thurgood endpoint parameters
  * changes in 1.10:
  * - add challengeCommunityLink and reviewAuctionDetailLink.
  * Changes in 1.11:
  * - add cachePrefix in config.general.
+ * changes in 1.12:
+ * - add defaultUserCacheLifetime property.
  */
 "use strict";
 
@@ -64,10 +67,11 @@ config.general = {
         "server" : __dirname + "/servers",
         "initializer" : __dirname + "/initializers"
     },
-    defaultCacheLifetime : process.env.CACHE_EXPIRY || 1000 * 60 * 30, //30 min default
-    defaultAuthMiddlewareCacheLifetime : process.env.AUTH_MIDDLEWARE_CACHE_EXPIRY || 1000 * 60 * 30, //30 min default
+    defaultCacheLifetime : process.env.CACHE_EXPIRY || 1000 * 60 * 10, //10 min default
+    defaultAuthMiddlewareCacheLifetime : process.env.AUTH_MIDDLEWARE_CACHE_EXPIRY || 1000 * 60 * 10, //10 min default
+    defaultUserCacheLifetime: process.env.USER_CACHE_EXPIRY || 1000 * 60 * 60 * 24, //24 hours default
     cachePrefix: '',
-    oauthClientId: process.env.OAUTH_CLIENT_ID || "topcoder",
+    oauthClientId: process.env.OAUTH_CLIENT_ID || "CMaBuwSnY0Vu68PLrWatvvu3iIiGPh7t",
     //auth0 secret is encoded in base64!
     oauthClientSecret: new Buffer(process.env.OAUTH_CLIENT_SECRET || 'ZEEIRf_aLhvbYymAMTFefoEJ_8y7ELrUaboMTmE5fQoJXEo7sxxyg8IW6gtbyKuT', 'base64'),
     oauthConnection: process.env.OAUTH_CONNECTION || "vm-ldap-connection",
@@ -78,7 +82,13 @@ config.general = {
     filteredParams: ['password'],
     downloadsRootDirectory: process.env.DOWNLOADS_ROOT_DIRECTORY || __dirname + "/downloads",
     challengeCommunityLink: 'http://community.topcoder.com/tc?module=ProjectDetail&pj=',
-    reviewAuctionDetailLink: 'http://community.topcoder.com/tc?module=ReviewAuctionDetails&aid='
+    reviewAuctionDetailLink: 'http://community.topcoder.com/tc?module=ReviewAuctionDetails&aid=',
+
+    /**
+     * The directory where uploaded files are stored.
+     * It can be relative to the current directory or can be absolute 
+     */
+    uploadsRootDirectory: process.env.UPLOADS_ROOT_DIRECTORY || "test/test_files/dev_download_submission"
 };
 
 /////////////
@@ -245,6 +255,12 @@ config.designSubmissionLink = 'http://studio.topcoder.com/?module=DownloadSubmis
 //The name of the folder where to store the submission files.
 //Please make sure the directory already exists
 config.submissionDir = process.env.SUBMISSION_DIR || 'test/tmp/submissions';
+
+/**
+ * The thurgood username and password used for downloading submissions
+ */
+config.thurgoodDownloadUsername = process.env.THURGOOD_DOWNLOAD_USERNAME || "iamthurgood";
+config.thurgoodDownloadPassword = process.env.THURGOOD_DOWNLOAD_PASSWORD || "secret";
 
 //Max size of a submission. Currently set to 2KB for test purpose. On production, it will be in the order of 100s of MB
 //Set to 0 or negative for no size limit.

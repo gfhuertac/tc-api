@@ -1,8 +1,8 @@
 /*
  * Copyright (C) 2013 - 2014 TopCoder Inc., All Rights Reserved.
  *
- * @version 1.13
- * @author Sky_, mekanizumu, TCSASSEMBLER, freegod, Ghost_141, kurtrips, xjtufreeman, ecnu_haozi
+ * @version 1.15
+ * @author Sky_, mekanizumu, TCSASSEMBLER, freegod, Ghost_141, kurtrips, xjtufreeman, ecnu_haozi, hesibo, LazyChild
  * @changes from 1.0
  * merged with Member Registration API
  * changes in 1.1:
@@ -33,6 +33,11 @@
  * refactor out the getChallengeTerms functionality into initializers/challengeHelper.js.
  * changes in 1.13:
  * add API for checkpoint results for software and studio
+ * changes in 1.14:
+ * move get terms of use API to terms.js
+ * changes in 1.15:
+ * Change the open and active status filter behaviour. OPEN for only reg phase is open, ACTIVE for reg is closed and
+ * the challenge status is active.
  */
 "use strict";
 
@@ -67,7 +72,8 @@ var DEFAULT_SORT_COLUMN = "challengeName";
  */
 var ALLOWABLE_QUERY_PARAMETER = [
     "listType", "challengeType", "challengeName", "projectId", SORT_COLUMN,
-    "sortOrder", "pageIndex", "pageSize", "prizeLowerBound", "prizeUpperBound", "cmcTaskId", 'communityId'];
+    "sortOrder", "pageIndex", "pageSize", "prizeLowerBound", "prizeUpperBound", "cmcTaskId", 'communityId',
+    "submissionEndFrom", "submissionEndTo"];
 
 /**
  * Represents a predefined list of valid sort column for active challenge.
@@ -98,13 +104,13 @@ var DR_POINT = [[1], [0.7, 0.3], [0.65, 0.25, 0.10], [0.6, 0.22, 0.1, 0.08], [0.
 var MAX_INT = 2147483647;
 
 /**
- * The list type and submission phase status map.
+ * The list type and registration phase status map.
  */
-var LIST_TYPE_SUBMISSION_STATUS_MAP = {};
-LIST_TYPE_SUBMISSION_STATUS_MAP[ListType.ACTIVE] = [2, 3];
-LIST_TYPE_SUBMISSION_STATUS_MAP[ListType.OPEN] = [2];
-LIST_TYPE_SUBMISSION_STATUS_MAP[ListType.UPCOMING] = [1];
-LIST_TYPE_SUBMISSION_STATUS_MAP[ListType.PAST] = [3];
+var LIST_TYPE_REGISTRATION_STATUS_MAP = {};
+LIST_TYPE_REGISTRATION_STATUS_MAP[ListType.ACTIVE] = [2, 3];
+LIST_TYPE_REGISTRATION_STATUS_MAP[ListType.OPEN] = [2];
+LIST_TYPE_REGISTRATION_STATUS_MAP[ListType.UPCOMING] = [1];
+LIST_TYPE_REGISTRATION_STATUS_MAP[ListType.PAST] = [3];
 
 /**
  * The list type and project status map.
@@ -119,6 +125,19 @@ LIST_TYPE_PROJECT_STATUS_MAP[ListType.PAST] = [4, 5, 6, 7, 8, 9, 10, 11];
  * This copilot posting project type id
  */
 var COPILOT_POSTING_PROJECT_TYPE = 29;
+
+/**
+ * Max and min date value for date parameter.
+ * @type {string}
+ */
+var MIN_DATE = '1900-1-1';
+var MAX_DATE = '9999-1-1';
+
+/**
+ * The date format for input date parameter startDate and enDate.
+ * Dates like 2014-01-29 and 2014-1-29 are valid
+ */
+var DATE_FORMAT = 'YYYY-M-D';
 
 /**
  * If the user is a copilot
@@ -193,6 +212,12 @@ function validateInputParameter(helper, caller, challengeType, query, filter, pa
     if (_.isDefined(filter.prizeUpperBound)) {
         error = error || helper.checkNonNegativeNumber(Number(filter.prizeUpperBound), "prizeUpperBound");
     }
+    if (_.isDefined(filter.submissionEndFrom)) {
+        error = error || helper.validateDate(filter.submissionEndFrom, 'submissionEndFrom', DATE_FORMAT);
+    }
+    if (_.isDefined(filter.submissionEndTo)) {
+        error = error || helper.validateDate(filter.submissionEndTo, 'submissionEndTo', DATE_FORMAT);
+    }
     if (error) {
         callback(error);
         return;
@@ -216,6 +241,8 @@ function setFilter(filter, sqlParams) {
     sqlParams.priupper = MAX_INT;
     sqlParams.tcdirectid = 0;
     sqlParams.communityId = 0;
+    sqlParams.submissionEndFrom = MIN_DATE;
+    sqlParams.submissionEndTo = MAX_DATE;
 
     if (_.isDefined(filter.challengeType)) {
         sqlParams.categoryName = filter.challengeType.toLowerCase();
@@ -237,6 +264,12 @@ function setFilter(filter, sqlParams) {
     }
     if (_.isDefined(filter.communityId)) {
         sqlParams.communityId = filter.communityId;
+    }
+    if (_.isDefined(filter.submissionEndFrom)) {
+        sqlParams.submissionEndFrom = filter.submissionEndFrom;
+    }
+    if (_.isDefined(filter.submissionEndTo)) {
+        sqlParams.submissionEndTo = filter.submissionEndTo;
     }
 }
 
@@ -281,6 +314,10 @@ function transferResult(src, helper) {
             challengeId : row.challenge_id,
             projectId : row.project_id,
             forumId : row.forum_id,
+            eventId: row.event_id,
+            eventName: row.event_name,
+            platforms: _.isDefined(row.platforms) ? row.platforms.split(', ') : [],
+            technologies: _.isDefined(row.technology) ? row.technology.split(', ') : [],
             numSubmissions : row.num_submissions,
             numRegistrants : row.num_registrants,
             screeningScorecardId : row.screening_scorecard_id,
@@ -393,7 +430,7 @@ var searchChallenges = function (api, connection, dbConnectionMap, community, ne
         query = connection.rawConnection.parsedURL.query,
         caller = connection.caller,
         copyToFilter = ["challengeType", "challengeName", "projectId", "prizeLowerBound",
-            "prizeUpperBound", "cmcTaskId", 'communityId'],
+            "prizeUpperBound", "cmcTaskId", 'communityId', "submissionEndFrom", "submissionEndTo"],
         sqlParams = {},
         filter = {},
         pageIndex,
@@ -455,7 +492,7 @@ var searchChallenges = function (api, connection, dbConnectionMap, community, ne
             // Set the project type id
             sqlParams.project_type_id = challengeType.category;
             // Set the submission phase status id.
-            sqlParams.submission_phase_status = LIST_TYPE_SUBMISSION_STATUS_MAP[listType];
+            sqlParams.registration_phase_status = LIST_TYPE_REGISTRATION_STATUS_MAP[listType];
             sqlParams.project_status_id = LIST_TYPE_PROJECT_STATUS_MAP[listType];
             sqlParams.userId = caller.userId || 0;
 
@@ -787,7 +824,7 @@ var getChallenge = function (api, connection, dbConnectionMap, isStudio, next) {
             challenge.platforms = mapPlatforms(results.platforms);
             challenge.phases = mapPhases(results.phases);
             if (data.event_id !== 0) {
-                challenge.event = {id: data.event_id, description: data.event_description, shortDescription: data.event_short_description};
+                challenge.event = {id: data.event_id, description: data.event_description, shortDescription: data.event_short_desc};
             }
             cb();
         }
@@ -796,71 +833,6 @@ var getChallenge = function (api, connection, dbConnectionMap, isStudio, next) {
             helper.handleError(api, connection, err);
         } else {
             connection.response = challenge;
-        }
-        next(connection, true);
-    });
-};
-
-/**
- * Gets the term details given the term id. 
- * 
- * @param {Object} api The api object that is used to access the global infrastructure
- * @param {Object} connection The connection object for the current request
- * @param {Object} dbConnectionMap The database connection map for the current request
- * @param {Function<connection, render>} next The callback to be called after this function is done
- * @since 1.7
- */
-var getTermsOfUse = function (api, connection, dbConnectionMap, next) {
-
-    //Check if the user is logged-in
-    if (_.isUndefined(connection.caller) || _.isNull(connection.caller) ||
-            _.isEmpty(connection.caller) || !_.contains(_.keys(connection.caller), 'userId')) {
-        api.helper.handleError(api, connection, new UnauthorizedError("Authentication details missing or incorrect."));
-        next(connection, true);
-        return;
-    }
-
-    var helper = api.helper,
-        sqlParams = {},
-        result = {},
-        termsOfUseId = Number(connection.params.termsOfUseId);
-
-    async.waterfall([
-        function (cb) {
-
-            //Simple validations of the incoming parameters
-            var error = helper.checkPositiveInteger(termsOfUseId, 'termsOfUseId') ||
-                helper.checkMaxNumber(termsOfUseId, MAX_INT, 'termsOfUseId');
-            if (error) {
-                cb(error);
-                return;
-            }
-
-            sqlParams.termsOfUseId = termsOfUseId;
-            api.dataAccess.executeQuery("get_terms_of_use", sqlParams, dbConnectionMap, cb);
-        }, function (rows, cb) {
-            if (rows.length === 0) {
-                cb(new NotFoundError('No such terms of use exists.'));
-                return;
-            }
-
-            //We could just have result = rows[0]; but we need to change keys to camel case as per requirements
-            var camelCaseMap = {
-                'agreeability_type': 'agreeabilityType',
-                'terms_of_use_id': 'termsOfUseId'
-            };
-            _.each(rows[0], function (value, key) {
-                key = camelCaseMap[key] || key;
-                result[key] = value;
-            });
-
-            cb();
-        }
-    ], function (err) {
-        if (err) {
-            helper.handleError(api, connection, err);
-        } else {
-            connection.response = result;
         }
         next(connection, true);
     });
@@ -1053,7 +1025,7 @@ var submitForDevelopChallenge = function (api, connection, dbConnectionMap, next
                 fileName: fileName
             });
             api.dataAccess.executeQuery("insert_upload", sqlParams, dbConnectionMap, cb);
-        }, function (notUsed, cb) {
+        }, function (cb) {
             //Now check if the contest is a CloudSpokes one and if it needs to submit the thurgood job
             if (!_.isUndefined(thurgoodPlatform) && !_.isUndefined(thurgoodLanguage) && type === 'final') {
                 //Make request to the thurgood job api url
@@ -1209,8 +1181,8 @@ var getCheckpoint = function (api, connection, dbConnectionMap, isStudio, next) 
         }, function (res, cb) {
             var generalFeedback = "", hasGeneralFeedback = true;
             if (res.feedback.length === 0 ||
-                !_.isDefined(res.feedback[0].general_feedback) ||
-                res.feedback[0].general_feedback.trim().length === 0) {
+                    !_.isDefined(res.feedback[0].general_feedback) ||
+                    res.feedback[0].general_feedback.trim().length === 0) {
                 hasGeneralFeedback = false;
             } else {
                 generalFeedback = res.feedback[0].general_feedback || "";
@@ -1280,32 +1252,6 @@ exports.getChallengeTerms = {
         }
     }
 };
-
-/**
- * The API for getting terms of use by id
- */
-exports.getTermsOfUse = {
-    name: "getTermsOfUse",
-    description: "getTermsOfUse",
-    inputs: {
-        required: ["termsOfUseId"],
-        optional: []
-    },
-    blockedConnectionTypes: [],
-    outputExample: {},
-    version: 'v2',
-    transaction : 'read', // this action is read-only
-    databases : ["common_oltp"],
-    run: function (api, connection, next) {
-        if (connection.dbConnectionMap) {
-            api.log("Execute getTermsOfUse#run", 'debug');
-            getTermsOfUse(api, connection, connection.dbConnectionMap, next);
-        } else {
-            api.helper.handleNoConnection(api, connection, next);
-        }
-    }
-};
-
 
 /**
  * This function gets the challenge results for both develop (software) and design (studio) contests.

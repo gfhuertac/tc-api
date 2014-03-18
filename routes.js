@@ -1,8 +1,8 @@
 /*
  * Copyright (C) 2013 - 2014 TopCoder Inc., All Rights Reserved.
  *
- * @version 1.16
- * @author vangavroche, Sky_, muzehyun, kurtrips, Ghost_141, ecnu_haozi
+ * @version 1.24
+ * @author vangavroche, Sky_, muzehyun, kurtrips, Ghost_141, ecnu_haozi, hesibo, LazyChild
  * Changes in 1.1:
  * - add routes for search challenges
  * Changes in 1.2:
@@ -27,9 +27,12 @@
  * - added routes for terms api
  * Changes in 1.11:
  * - add invoice history api.
+ * - added route for dev download submission api
  * Changes in 1.12:
  * - added route for dev upload submission api
- * Changes in 1.13
+ * - added route for create customer
+ * Changes in 1.13:
+ * - added route for create billing api
  * - added register challenge for a given user api.
  * Changes in 1.14:
  * - added route for active billing accounts
@@ -38,8 +41,23 @@
  * - added routes for getting studio and software checkpoints
  * Changes in 1.16:
  * - added routes for validate handle
- * changes in 1.16:
+ * changes in 1.17:
  * - Combine Challenge Registration API(BUGR-11058)
+ * changes in 1.18:
+ * - added routes for data platforms and technologies
+ * Changes in 1.19:
+ * - added route for agree term of use api.
+ * Changes in 1.20:
+ * - update get review opportunity api name to getSoftwareReviewOpportunity.
+ * - Update path to use challengeId which is more clear.
+ * changes in 1.21:
+ * - added route for recent winning design submissions api
+ * changes in 1.22
+ * - added route for member search api
+ * changes in 1.23
+ * - added route for check email availability api
+ * changes in 1.24
+ * - added stub api for reset token and reset password
  */
 
 /* ---------------------
@@ -118,7 +136,9 @@ exports.routes = {
         { path: "/:apiVersion/develop/statistics/tops/:contestType", action: "getTops" },
         { path: "/:apiVersion/develop/statistics/:handle/:challengeType", action: "getSoftwareRatingHistoryAndDistribution" },
         { path: "/:apiVersion/develop/challenges", action: "searchSoftwareChallenges" },
+        { path: "/:apiVersion/develop/reviewOpportunities/:challengeId", action: "getSoftwareReviewOpportunity" },
         { path: "/:apiVersion/develop/reviewOpportunities", action: "searchReviewOpportunities" },
+        { path: "/:apiVersion/develop/download/:submissionId", action: "downloadDevSubmission" },
 
         { path: "/:apiVersion/design/challengetypes", action: "studioTypes" },
         { path: "/:apiVersion/design/challenges/result/:challengeId", action: "getStudioChallengeResults" },
@@ -127,8 +147,13 @@ exports.routes = {
         { path: "/:apiVersion/design/challenges", action: "searchStudioChallenges" },
         { path: "/:apiVersion/design/reviewOpportunities", action: "getStudioReviewOpportunities" },
 
+        { path: "/:apiVersion/users/resetToken", action: "generateResetToken" },
+
+        { path: "/:apiVersion/users/validateEmail", action: "emailValidation" },
         { path: "/:apiVersion/users/validate/:handle", action: "validateHandle" },
+        { path: "/:apiVersion/users/search", action: "searchUsers" },
         { path: "/:apiVersion/users/:handle/statistics/develop", action: "getSoftwareStatistics" },
+        { path: "/:apiVersion/users/:handle/statistics/design/recentWins", action: "getRecentWinningDesignSubmissions" },
         { path: "/:apiVersion/users/:handle/statistics/design", action: "getStudioStatistics" },
         { path: "/:apiVersion/users/:handle/statistics/data/marathon", action: "getMarathonStatistics" },
         { path: "/:apiVersion/users/:handle/statistics/data/srm", action: "getAlgorithmStatistics" },
@@ -141,6 +166,8 @@ exports.routes = {
         { path: "/:apiVersion/data/marathon/statistics/tops", action: "getMarathonTops" },
         { path: "/:apiVersion/data/srm/statistics/tops", action: "getSRMTops" },
         { path: "/:apiVersion/data/countries", action: "countries" },
+        { path: "/:apiVersion/data/platforms", action: "getPlatforms" },
+        { path: "/:apiVersion/data/technologies", action: "getTechnologies" },
 
         { path: "/:apiVersion/terms/:challengeId(\\d+)", action: "getChallengeTerms"},
         { path: "/:apiVersion/terms/detail/:termsOfUseId", action: "getTermsOfUse"},
@@ -160,8 +187,9 @@ exports.routes = {
         { path: "/:apiVersion/bugs/:jiraProjectId", action: "bugs" },
         { path: "/:apiVersion/bugs", action: "bugs" },
 
+        { path: "/:apiVersion/validation/sso", action: "ssoValidation" },
+
         //Stubs APIs
-        { path: "/:apiVersion/software/reviewOpportunities/:id", action: "getReviewOpportunity" },
         { path: "/:apiVersion/data/reviewOpportunities/:id", action: "getAlgorithmsReviewOpportunity" },
         { path: "/:apiVersion/data/reviewOpportunities", action: "getAlgorithmsReviewOpportunities" },
         { path: "/:apiVersion/software/reviewers/:contestType", action: "getChallengeReviewers" },
@@ -169,9 +197,16 @@ exports.routes = {
         { path: "/:apiVersion/data/challengetypes", action: "algorithmsChallengeTypes" }
     ].concat(testMethods.get),
     post: [
+        // Stub API
+        { path: "/:apiVersion/users/resetPassword/:handle", action: "resetPassword" },
+
+        { path: "/:apiVersion/terms/:termsOfUseId/agree", action: "agreeTermsOfUse" },
         { path: "/:apiVersion/users", action: "memberRegister" },
         { path: "/:apiVersion/develop/challenges/:challengeId/submit", action: "submitForDevelopChallenge" },
         { path: "/:apiVersion/challenges/:challengeId/register", action: "registerChallenge" },
-        { path: "/:apiVersion/auth", action: "generateJwt" }
+        { path: "/:apiVersion/auth", action: "generateJwt" },
+        { path: "/:apiVersion/reauth", action: "refreshJwt" },
+        { path: "/:apiVersion/platform/billing", action: "createBilling" },
+        { path: "/:apiVersion/platform/customer", action: "createCustomer" }
     ]
 };
